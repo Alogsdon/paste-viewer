@@ -50,6 +50,12 @@
         max-width: 75vw;
         margin: 0 auto;
       }
+      .imgbox {
+        display: flex;
+        justify-content: center;
+        padding: 1rem;
+        background-color: #f0f0f0;
+      }
     </style>
   </head>
   <body>
@@ -65,6 +71,18 @@
       <script>
         const dropzone = document.getElementById("drop");
         const result = document.getElementById("result");
+
+        const renderFile = (file, type) => {
+          const container = document.createElement("li");
+
+          const heading = document.createElement("h2");
+          heading.innerText = `File type: ${type}`;
+          const content = file;
+
+          container.appendChild(heading);
+          container.appendChild(content);
+          result.appendChild(container);
+        };
 
         const renderResult = ({ type, data }) => {
           const container = document.createElement("li");
@@ -115,14 +133,17 @@
                 const url = URL.createObjectURL(blob);
                 const img = document.createElement("img");
                 img.src = url;
-                result.appendChild(img);
+                const imgbox = document.createElement("div");
+                imgbox.classList.add("imgbox");
+                imgbox.appendChild(img);
+                renderFile(imgbox, item.type);
               } else {
                 const blob = item.getAsFile();
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = url;
                 a.innerText = blob.name;
-                result.appendChild(a);
+                renderFile(a, item.type);
               }
             } else {
               console.log(item.type);

@@ -36,6 +36,10 @@
         font-size: 1rem;
       }
 
+      img {
+        height: 100%;
+      }
+
       pre {
         background-color: #f0f0f0;
         font-size: 0.8rem;
@@ -55,6 +59,10 @@
         justify-content: center;
         padding: 1rem;
         background-color: #f0f0f0;
+        max-height: 300px;
+        max-width: 90%;
+        width: fit-content;
+        overflow: auto;
       }
     </style>
   </head>
@@ -72,49 +80,59 @@
         const dropzone = document.getElementById("drop");
         const result = document.getElementById("result");
 
-        const renderFile = (file, type) => {
+        const clipBoardResult = (typeName) => {
           const container = document.createElement("li");
-
           const heading = document.createElement("h2");
-          heading.innerText = `File type: ${type}`;
-          const content = file;
-
+          heading.innerText = typeName;
           container.appendChild(heading);
-          container.appendChild(content);
           result.appendChild(container);
+          return result;
         };
 
-        const renderResult = ({ type, data }) => {
-          const container = document.createElement("li");
-
-          const heading = document.createElement("h2");
-          heading.innerText = type;
-
-          const content = document.createElement("pre");
-          let secondary;
-
+        const appendTextResult = ({ container, type, text }) => {
           if (type === "text/html") {
+            const content = document.createElement("pre");
             prettier
-              .format(data, {
+              .format(text, {
                 parser: "html",
                 plugins: prettierPlugins,
               })
               .then((result) => {
                 content.innerText = result;
               });
-            secondary = document.createElement("div");
-            secondary.innerHTML = data;
+            const primaryTitle = document.createElement("h3");
+            primaryTitle.innerText = "as text";
+            container.appendChild(content);
+            const secondaryTitle = document.createElement("h3");
+            secondaryTitle.innerText = "as html";
+            container.appendChild(secondaryTitle);
+            const secondaryWrapper = document.createElement("div");
+            secondaryWrapper.classList.add("imgbox");
+            const secondary = document.createElement("div");
+            secondary.innerHTML = text;
+            secondaryWrapper.appendChild(secondary);
+            container.appendChild(secondaryWrapper);
           } else {
-            content.innerText = data;
+            const content = document.createElement("pre");
+            content.innerText = text;
+            container.appendChild(content);
           }
+        };
 
-          container.appendChild(heading);
-          container.appendChild(content);
-          if (secondary) {
-            container.appendChild(secondary);
+        const appendFileResult = ({ container, type, url, name }) => {
+          if (type.indexOf("image/") !== -1) {
+            const img = document.createElement("img");
+            img.src = url;
+            const imgbox = document.createElement("div");
+            imgbox.classList.add("imgbox");
+            imgbox.appendChild(img);
+            container.appendChild(imgbox);
+          } else {
+            const a = document.createElement("a");
+            a.href = url;
+            a.innerText = name;
+            container.appendChild(a);
           }
-
-          result.appendChild(container);
         };
 
         const handlePaste = (evt) => {
@@ -122,35 +140,18 @@
           result.innerHTML = "";
           dropzone.innerHTML = "";
 
-          const mimeTypesToCheck = clipboardData.types;
-
-          console.log("items", clipboardData.items);
           for (const item of evt.clipboardData.items) {
-            console.log(`kind = ${item.kind}, type = ${item.type}`);
+            const { type } = item;
+            const container = clipBoardResult(type);
             if (item.kind === "file") {
-              if (item.type.indexOf("image/") !== -1) {
-                const blob = item.getAsFile();
-                const url = URL.createObjectURL(blob);
-                const img = document.createElement("img");
-                img.src = url;
-                const imgbox = document.createElement("div");
-                imgbox.classList.add("imgbox");
-                imgbox.appendChild(img);
-                renderFile(imgbox, item.type);
-              } else {
-                const blob = item.getAsFile();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.innerText = blob.name;
-                renderFile(a, item.type);
-              }
+              const blob = item.getAsFile();
+              const url = URL.createObjectURL(blob);
+              const name = blob.name;
+              appendFileResult({ container, type, url, name });
             } else {
-              console.log(item.type);
-              const data = clipboardData.getData(item.type);
-              if (data) {
-                renderResult({ type: item.type, data });
-              }
+              // else it's a string/text
+              const text = clipboardData.getData(type);
+              appendTextResult({ container, type, text });
             }
           }
         };
